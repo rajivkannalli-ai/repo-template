@@ -30,7 +30,7 @@ jobs:
           echo "author=$(echo "$PR_JSON" | jq -r '.author.login // empty')" >> "$GITHUB_OUTPUT"
 
       - if: steps.pr.outputs.author == 'dependabot[bot]'
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
         id: metadata
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
