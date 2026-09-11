@@ -1,22 +1,54 @@
 name: dependabot-auto-merge
-on: pull_request
+on:
+  # Fires once ci or gitleaks finishes, so it can inspect the ACTUAL
+  # conclusion of every check run on this commit before merging. Classic
+  # branch protection would normally gate this, but that feature requires
+  # GitHub Pro on a private repo — this workflow self-gates instead.
+  workflow_run:
+    workflows: ["ci", "gitleaks"]
+    types: [completed]
 
 permissions:
   contents: write
   pull-requests: write
+  checks: read
 
 jobs:
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
+    if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: dependabot/fetch-metadata@v2
+      - name: Find the pull request for this commit
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          PR_JSON=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "$SHA" --json number,url,author --jq '.[0] // empty')
+          echo "url=$(echo "$PR_JSON" | jq -r '.url // empty')" >> "$GITHUB_OUTPUT"
+          echo "author=$(echo "$PR_JSON" | jq -r '.author.login // empty')" >> "$GITHUB_OUTPUT"
+
+      - if: steps.pr.outputs.author == 'dependabot[bot]'
+        uses: dependabot/fetch-metadata@v2
         id: metadata
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
-      # Patch/minor only — major bumps always need a human look.
-      - if: steps.metadata.outputs.update-type != 'version-update:semver-major'
-        run: gh pr merge --auto --squash "$PR_URL"
+
+      # Merge only once every check run on this exact commit has succeeded,
+      # and only for patch/minor bumps — major bumps always need a human.
+      - if: >
+          steps.pr.outputs.author == 'dependabot[bot]' &&
+          steps.metadata.outputs.update-type != 'version-update:semver-major'
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          PR_URL: ${{ steps.pr.outputs.url }}
+        run: |
+          statuses=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs" \
+            --jq '[.check_runs[].conclusion // "pending"] | unique | join(",")')
+          if [[ "$statuses" != "success" ]]; then
+            echo "::notice::Check runs on $SHA: [$statuses] — not all succeeded yet, skipping merge."
+            exit 0
+          fi
+          gh pr merge --squash "$PR_URL"
