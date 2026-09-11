@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "anthropic.claude-code",
+    "openai.chatgpt",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+    "ms-azuretools.vscode-docker",
+    "ms-vscode-remote.remote-containers",
+    "eamodio.gitlens",
+    "redhat.vscode-yaml",
+    "yzhang.markdown-all-in-one",
+    "github.vscode-pull-request-github",
+    "github.vscode-github-actions"
+  ]
+}

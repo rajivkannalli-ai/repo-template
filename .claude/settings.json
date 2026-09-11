@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "uv run ruff format $CLAUDE_FILE_PATH" },
+          { "type": "command", "command": "uv run ruff check --fix $CLAUDE_FILE_PATH" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit:*)",
+        "hooks": [
+          { "type": "command", "command": "uv run gitleaks protect --staged --no-banner" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "uv run mypy src && uv run pytest -q" }
+        ]
+      }
+    ]
+  }
+}

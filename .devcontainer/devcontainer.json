@@ -1,0 +1,33 @@
+{
+  "name": "ai-platform-python",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "nonFreePackages": false
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  },
+  "postCreateCommand": "pip install --user uv && uv sync --all-groups",
+  "remoteEnv": {
+    "UV_LINK_MODE": "copy"
+  },
+  "runArgs": ["--platform=linux/arm64"]
+}
